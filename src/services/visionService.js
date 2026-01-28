@@ -16,6 +16,9 @@ async function extractTextFromImage(base64Image) {
         ],
         imageContext: {
           languageHints: ["en", "hi"],
+          textDetectionParams: {
+            enableTextDetectionConfidenceScore: true
+          }
         },
       },
     ],
