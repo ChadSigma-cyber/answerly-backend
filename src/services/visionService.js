@@ -1,13 +1,26 @@
 const fetch = require("node-fetch");
+const sharp = require("sharp");
 
 async function extractTextFromImage(base64Image) {
+
+  const imageBuffer = Buffer.from(base64Image, "base64");
+
+  // 🔥 Preprocess image
+  const processedBuffer = await sharp(imageBuffer)
+    .grayscale()          // remove colors
+    .normalize()          // improve contrast
+    .sharpen()            // sharpen text
+    .resize({ width: 1500 }) // upscale if small
+    .toBuffer();
+
+  const processedBase64 = processedBuffer.toString("base64");
   const url = `https://vision.googleapis.com/v1/images:annotate?key=${process.env.GOOGLE_VISION_API_KEY}`;
 
   const body = {
     requests: [
       {
         image: {
-          content: base64Image,
+          content: processedBase64,
         },
         features: [
           {
