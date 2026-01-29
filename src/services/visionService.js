@@ -7,10 +7,9 @@ async function extractTextFromImage(base64Image) {
 
   // 🔥 Preprocess image
   const processedBuffer = await sharp(imageBuffer)
-    .grayscale()          // remove colors
-    .normalize()          // improve contrast
-    .sharpen()            // sharpen text
-    .resize({ width: 1500 }) // upscale if small
+    .resize({ width: 1800 })     // more pixels
+    .modulate({ contrast: 1.3 }) // boost contrast
+    .sharpen({ sigma: 1 })       // lighter sharpen
     .toBuffer();
 
   const processedBase64 = processedBuffer.toString("base64");
