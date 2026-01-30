@@ -32,12 +32,7 @@ router.post("/", async (req, res) => {
       }
     ]);
 
-    res.setHeader("Content-Type", "text/event-stream");
-    res.setHeader("Cache-Control", "no-cache");
-    res.setHeader("Connection", "keep-alive");
-    res.flushHeaders();
-
-    const stream = await openai.chat.completions.create({
+    const completion = await openai.chat.completions.create({
       model: "gpt-4.1-mini-2025-04-14",
       messages: [
         {
@@ -49,17 +44,15 @@ router.post("/", async (req, res) => {
           content: text,
         },
       ],
-      stream: true,
     });
 
-    for await (const chunk of stream) {
-      const token = chunk.choices[0]?.delta?.content;
-      if (token) {
-        res.write(token);
-      }
-    }
+    const answer = completion.choices[0].message.content;
 
-    res.end();
+    return res.json({
+      success: true,
+      question: text,
+      answer,
+    });
 
   } catch (error) {
     console.error("AI Error:", error);
