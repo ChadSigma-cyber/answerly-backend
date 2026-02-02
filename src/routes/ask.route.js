@@ -33,7 +33,7 @@ router.post("/", async (req, res) => {
     ]);
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-4.1-mini-2025-04-14",
+      model: "gpt-5-mini",
       messages: [
         {
           role: "system",
