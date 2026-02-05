@@ -1,11 +1,6 @@
 const express = require("express");
 const router = express.Router();
 const axios = require("axios");
-const OpenAI = require("openai");
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 router.post("/", async (req, res) => {
   try {
@@ -15,7 +10,7 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ error: "No image provided" });
     }
 
-    // 🔹 1. GOOGLE VISION OCR
+    // 🔹 GOOGLE VISION OCR
     const visionResponse = await axios.post(
       `https://vision.googleapis.com/v1/images:annotate?key=${process.env.GOOGLE_VISION_API_KEY}`,
       {
@@ -35,40 +30,12 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ error: "No text detected in image" });
     }
 
-    // ✅ STREAM HEADERS
-    res.setHeader("Content-Type", "text/plain; charset=utf-8");
-    res.setHeader("Cache-Control", "no-cache");
-    res.setHeader("Connection", "keep-alive");
+    // ✅ RETURN OCR ONLY
+    return res.json({ extractedText });
 
-    // 🔹 2. STREAM GPT
-    const stream = await openai.chat.completions.create({
-      model: "gpt-5-mini",
-      stream: true,
-      messages: [
-        {
-          role: "system",
-          content:
-            "Identify the subject(Whether Economics,Maths,English,Accounts,Business studies,Physics,Chemistry,Biology,History,Civics,Geography) and solve completely in CBSE exam style using only CBSE-approved methods and simple NCERT language. Use steps for numericals but only paragraphs for theory. Always use simple notation (no LaTeX at all, no frac, no {}, no √ use this √, use tan^-1 not arctan. Never leave any question incomplete or say it’s not in syllabus — always continue logically till the end and give a clean, simplified final answer. Format as: 📘 Subject: [auto] 📖 Chapter: [if clear] 📝 Step-by-step solution: ...",
-        },
-        {
-          role: "user",
-          content: extractedText,
-        },
-      ],
-    });
-
-    // 🔹 3. PIPE TOKENS TO FRONTEND
-    for await (const chunk of stream) {
-      const token = chunk.choices[0]?.delta?.content;
-      if (token) {
-        res.write(token);
-      }
-    }
-
-    res.end();
   } catch (err) {
-    console.error("❌ Image processing error:", err);
-    res.end();
+    console.error("❌ Image OCR error:", err);
+    return res.status(500).json({ error: "OCR failed" });
   }
 });
 
