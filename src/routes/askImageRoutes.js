@@ -16,7 +16,7 @@ router.post("/", async (req, res) => {
         requests: [
           {
             image: { content: imageBase64 },
-            features: [{ type: "TEXT_DETECTION" }],
+            features: [{ type: "DOCUMENT_TEXT_DETECTION" }],
           },
         ],
       }
