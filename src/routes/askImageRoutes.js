@@ -10,7 +10,6 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ error: "No image provided" });
     }
 
-    // 🔹 GOOGLE VISION OCR
     const visionResponse = await axios.post(
       `https://vision.googleapis.com/v1/images:annotate?key=${process.env.GOOGLE_VISION_API_KEY}`,
       {
@@ -30,11 +29,11 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ error: "No text detected in image" });
     }
 
-    // ✅ RETURN OCR ONLY
+    // ✅ ONLY JSON
     return res.json({ extractedText });
 
   } catch (err) {
-    console.error("❌ Image OCR error:", err);
+    console.error("OCR error:", err);
     return res.status(500).json({ error: "OCR failed" });
   }
 });
