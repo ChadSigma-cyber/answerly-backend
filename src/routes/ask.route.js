@@ -13,35 +13,37 @@ const supabase = createClient(
 );
 
 router.post("/", async (req, res) => {
-  const { text, extractedText } = req.body;
-
-  if (!text) {
-    return res.status(400).json({
-      success: false,
-      message: "Text required",
-    });
-  }
-
-  // ✅ SET STREAM HEADERS IMMEDIATELY (IMPORTANT)
-  res.setHeader("Content-Type", "text/plain; charset=utf-8");
-  res.setHeader("Cache-Control", "no-cache");
-  res.setHeader("Connection", "keep-alive");
-  res.setHeader("Transfer-Encoding", "chunked");
-
-  // ✅ SAVE TO DB IN BACKGROUND (NON-BLOCKING)
-  supabase
-    .from("questions")
-    .insert([
-      {
-        question: text,
-        extracted_text: extractedText || null,
-      },
-    ])
-    .catch(console.error);
-
   try {
+    const { text, extractedText } = req.body;
+
+    if (!text) {
+      return res.status(400).json({
+        success: false,
+        message: "Text required",
+      });
+    }
+
+    // ✅ store question
+   
+
+    // ✅ set headers for streaming
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+
+    supabase
+      .from("questions")
+      .insert([
+        {
+          question: text,
+          extracted_text: extractedText || null,
+        },
+      ])
+      .catch(console.error);
+
+
     const stream = await openai.chat.completions.create({
-      model: "gpt-5-mini", // 👈 unchanged
+      model: "gpt-5-mini",
       stream: true,
       messages: [
         {
@@ -56,6 +58,7 @@ router.post("/", async (req, res) => {
       ],
     });
 
+    // ✅ stream tokens to frontend
     for await (const chunk of stream) {
       const token = chunk.choices[0]?.delta?.content;
       if (token) {
@@ -66,11 +69,7 @@ router.post("/", async (req, res) => {
     res.end();
   } catch (error) {
     console.error("AI Error:", error);
-    if (!res.headersSent) {
-      res.status(500).end("AI error");
-    } else {
-      res.end();
-    }
+    res.end();
   }
 });
 
