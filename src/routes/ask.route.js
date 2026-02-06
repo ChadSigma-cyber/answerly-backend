@@ -24,23 +24,17 @@ router.post("/", async (req, res) => {
     }
 
     // ✅ store question
-   
+    await supabase.from("questions").insert([
+      {
+        question: text,
+        extracted_text: extractedText || null,
+      },
+    ]);
 
     // ✅ set headers for streaming
     res.setHeader("Content-Type", "text/plain; charset=utf-8");
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
-
-    supabase
-      .from("questions")
-      .insert([
-        {
-          question: text,
-          extracted_text: extractedText || null,
-        },
-      ])
-      .catch(console.error);
-
 
     const stream = await openai.chat.completions.create({
       model: "gpt-5-mini",
