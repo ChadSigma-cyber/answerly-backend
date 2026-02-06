@@ -12,9 +12,13 @@ const supabase = createClient(
 
 router.post("/", async (req, res) => {
   const { text, extractedText } = req.body;
-  if (!text) return res.status(400).json({ message: "Text required" });
 
-  // headers FAST
+  if (!text) {
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.write("Error: No text provided");
+    return res.end();
+  }
+
   res.setHeader("Content-Type", "text/plain; charset=utf-8");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
@@ -22,10 +26,8 @@ router.post("/", async (req, res) => {
   res.setHeader("X-Accel-Buffering", "no");
   res.flushHeaders?.();
 
-  // send instant feedback
-  res.write(" "); 
+  res.write(" "); // kickstart stream
 
-  // non-blocking save
   supabase.from("questions").insert([
     { question: text, extracted_text: extractedText || null }
   ]).catch(console.error);
@@ -34,7 +36,7 @@ router.post("/", async (req, res) => {
     const stream = await client.responses.stream({
       model: "gpt-5-mini",
       input: [
-        { role: "system", content: "YOUR PROMPT UNCHANGED..." },
+        { role: "system", content: "YOUR PROMPT" },
         { role: "user", content: text }
       ]
     });
@@ -48,6 +50,7 @@ router.post("/", async (req, res) => {
     res.end();
   } catch (err) {
     console.error(err);
+    res.write("Error generating answer");
     res.end();
   }
 });
