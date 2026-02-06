@@ -13,31 +13,35 @@ const supabase = createClient(
 );
 
 router.post("/", async (req, res) => {
-  try {
-    const { text, extractedText } = req.body;
+  const { text, extractedText } = req.body;
 
-    if (!text) {
-      return res.status(400).json({
-        success: false,
-        message: "Text required",
-      });
-    }
+  if (!text) {
+    return res.status(400).json({
+      success: false,
+      message: "Text required",
+    });
+  }
 
-    // ✅ store question
-    await supabase.from("questions").insert([
+  // ✅ SET STREAM HEADERS IMMEDIATELY (IMPORTANT)
+  res.setHeader("Content-Type", "text/plain; charset=utf-8");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("Transfer-Encoding", "chunked");
+
+  // ✅ SAVE TO DB IN BACKGROUND (NON-BLOCKING)
+  supabase
+    .from("questions")
+    .insert([
       {
         question: text,
         extracted_text: extractedText || null,
       },
-    ]);
+    ])
+    .catch(console.error);
 
-    // ✅ set headers for streaming
-    res.setHeader("Content-Type", "text/plain; charset=utf-8");
-    res.setHeader("Cache-Control", "no-cache");
-    res.setHeader("Connection", "keep-alive");
-
+  try {
     const stream = await openai.chat.completions.create({
-      model: "gpt-5-mini",
+      model: "gpt-5-mini", // 👈 unchanged
       stream: true,
       messages: [
         {
@@ -52,7 +56,6 @@ router.post("/", async (req, res) => {
       ],
     });
 
-    // ✅ stream tokens to frontend
     for await (const chunk of stream) {
       const token = chunk.choices[0]?.delta?.content;
       if (token) {
@@ -63,7 +66,11 @@ router.post("/", async (req, res) => {
     res.end();
   } catch (error) {
     console.error("AI Error:", error);
-    res.end();
+    if (!res.headersSent) {
+      res.status(500).end("AI error");
+    } else {
+      res.end();
+    }
   }
 });
 
