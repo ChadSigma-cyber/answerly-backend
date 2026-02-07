@@ -23,18 +23,39 @@ router.post("/", async (req, res) => {
       });
     }
 
-    // ✅ store question
+    /* 🔍 1. CHECK CACHE FIRST */
+    const { data: cached } = await supabase
+      .from("questions")
+      .select("answer")
+      .eq("question", text)
+      .not("answer", "is", null)
+      .limit(1)
+      .single();
+
+    if (cached?.answer) {
+      res.setHeader("Content-Type", "text/plain; charset=utf-8");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+
+      res.write(cached.answer);
+      return res.end();
+    }
+
+    /* 📝 2. INSERT QUESTION (IF NOT EXISTS) */
     await supabase.from("questions").insert([
       {
         question: text,
         extracted_text: extractedText || null,
+        answer: null,
       },
     ]);
 
-    // ✅ set headers for streaming
+    /* 🌊 STREAM HEADERS */
     res.setHeader("Content-Type", "text/plain; charset=utf-8");
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
+
+    let fullAnswer = "";
 
     const stream = await openai.chat.completions.create({
       model: "gpt-5-mini",
@@ -52,13 +73,20 @@ router.post("/", async (req, res) => {
       ],
     });
 
-    // ✅ stream tokens to frontend
+    /* 🌊 STREAM + BUILD ANSWER */
     for await (const chunk of stream) {
       const token = chunk.choices[0]?.delta?.content;
       if (token) {
+        fullAnswer += token;
         res.write(token);
       }
     }
+
+    /* 💾 3. SAVE FINAL ANSWER */
+    await supabase
+      .from("questions")
+      .update({ answer: fullAnswer })
+      .eq("question", text);
 
     res.end();
   } catch (error) {
