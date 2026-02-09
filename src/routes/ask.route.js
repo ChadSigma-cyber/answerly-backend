@@ -12,6 +12,10 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_KEY
 );
 
+router.get("/health", (req, res) => {
+  res.status(200).send("OK");
+});
+
 router.post("/", async (req, res) => {
   try {
     const { text, extractedText } = req.body;
@@ -22,6 +26,9 @@ router.post("/", async (req, res) => {
         message: "Text required",
       });
     }
+
+
+    const cleanText = text.trim().toLowerCase();
 
     /* 🔍 1. CHECK CACHE FIRST */
     const { data: cached } = await supabase
