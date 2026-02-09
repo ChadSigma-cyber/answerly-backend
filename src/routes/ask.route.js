@@ -34,7 +34,7 @@ router.post("/", async (req, res) => {
     const { data: cached } = await supabase
       .from("questions")
       .select("answer")
-      .eq("question", text)
+      .eq("question", cleanText)
       .not("answer", "is", null)
       .limit(1)
       .single();
@@ -93,7 +93,7 @@ router.post("/", async (req, res) => {
     await supabase
       .from("questions")
       .update({ answer: fullAnswer })
-      .eq("question", text);
+      .eq("question", cleanText);
 
     res.end();
   } catch (error) {
