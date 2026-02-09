@@ -51,7 +51,7 @@ router.post("/", async (req, res) => {
     /* 📝 2. INSERT QUESTION (IF NOT EXISTS) */
     await supabase.from("questions").insert([
       {
-        question: text,
+        question: cleanText,
         extracted_text: extractedText || null,
         answer: null,
       },
