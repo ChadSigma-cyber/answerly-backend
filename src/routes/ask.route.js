@@ -48,15 +48,6 @@ router.post("/", async (req, res) => {
       return res.end();
     }
 
-    /* 📝 2. INSERT QUESTION (IF NOT EXISTS) */
-    await supabase.from("questions").insert([
-      {
-        question: cleanText,
-        extracted_text: extractedText || null,
-        answer: null,
-      },
-    ]);
-
     /* 🌊 STREAM HEADERS */
     res.setHeader("Content-Type", "text/plain; charset=utf-8");
     res.setHeader("Cache-Control", "no-cache");
@@ -88,14 +79,19 @@ router.post("/", async (req, res) => {
         res.write(token);
       }
     }
-
-    /* 💾 3. SAVE FINAL ANSWER */
-    await supabase
-      .from("questions")
-      .update({ answer: fullAnswer })
-      .eq("question", cleanText);
-
     res.end();
+
+    /* 📝 2. INSERT QUESTION (IF NOT EXISTS) */
+    await supabase.from("questions").insert([
+      {
+        question: cleanText,
+        extracted_text: extractedText || null,
+        answer: fullAnswer,
+      },
+    ]);
+
+
+
   } catch (error) {
     console.error("AI Error:", error);
     res.end();
